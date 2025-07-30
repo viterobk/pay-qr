@@ -19,6 +19,17 @@ const darkTheme = createTheme({
   }
 });
 
+const LABELS = {
+  Name: "ФИО",
+  PersonalAcc: "Лицевой счет",
+  BankName: "Банк",
+  BIC: "БИК",
+  CorrespAcc: "Корреспондентский счет",
+  PayeeINN: "ИНН получателя",
+  Purpose: "Назначение платежа",
+  Sum: "Сумма (не обязательно)",
+}
+
 const defaultFields = {
   Name: "",
   PersonalAcc: "",
@@ -94,7 +105,7 @@ export default function App() {
           {Object.keys(fields).map((key) => (
             <TextField
               key={key}
-              label={key}
+              label={LABELS[key] || key}
               name={key}
               value={fields[key]}
               onChange={handleChange}
