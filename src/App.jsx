@@ -9,26 +9,12 @@ import {
   Paper,
   Button,
   Stack,
-  CssBaseline
+  CssBaseline,
+  ThemeProvider,
+  createTheme,
+  Snackbar,
+  Alert
 } from "@mui/material";
-import { ThemeProvider, createTheme } from "@mui/material/styles";
-
-const darkTheme = createTheme({
-  palette: {
-    mode: "dark"
-  }
-});
-
-const LABELS = {
-  Name: "ФИО",
-  PersonalAcc: "Лицевой счет",
-  BankName: "Банк",
-  BIC: "БИК",
-  CorrespAcc: "Корреспондентский счет",
-  PayeeINN: "ИНН получателя",
-  Purpose: "Назначение платежа",
-  Sum: "Сумма (не обязательно)",
-}
 
 const defaultFields = {
   Name: "",
@@ -41,6 +27,12 @@ const defaultFields = {
   Sum: ""
 };
 
+const darkTheme = createTheme({
+  palette: {
+    mode: "dark"
+  }
+});
+
 export default function App() {
   const [fields, setFields] = useState(() => {
     const stored = localStorage.getItem("qrForm");
@@ -49,6 +41,7 @@ export default function App() {
 
   const [errors, setErrors] = useState({});
   const [isValid, setIsValid] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
   const qrRef = useRef(null);
 
   useEffect(() => {
@@ -71,26 +64,87 @@ export default function App() {
   const handleDownload = () => {
     const svg = qrRef.current?.querySelector("svg");
     if (!svg) return;
+
     const serializer = new XMLSerializer();
-    const source = serializer.serializeToString(svg);
-    const blob = new Blob([source], { type: "image/svg+xml" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "qr-code.svg";
-    link.click();
-    URL.revokeObjectURL(url);
+    const svgString = serializer.serializeToString(svg);
+    const svgBlob = new Blob([svgString], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(svgBlob);
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = url;
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+
+      canvas.toBlob((blob) => {
+        const pngUrl = URL.createObjectURL(blob);
+        const downloadLink = document.createElement("a");
+        downloadLink.href = pngUrl;
+        downloadLink.download = "qr-code.png";
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        URL.revokeObjectURL(pngUrl);
+      }, "image/png");
+    };
+  };
+
+  const handleCopy = async () => {
+    const svg = qrRef.current?.querySelector("svg");
+    if (!svg) return;
+
+    const canvas = document.createElement("canvas");
+    const serializer = new XMLSerializer();
+    const svgString = serializer.serializeToString(svg);
+    const svgBlob = new Blob([svgString], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(svgBlob);
+
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = url;
+    img.onload = async () => {
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+
+      try {
+        const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/png"));
+        await navigator.clipboard.write([
+          new ClipboardItem({ [blob.type]: blob })
+        ]);
+        setCopySuccess(true);
+      } catch (err) {
+        alert("Ошибка копирования изображения: " + err.message);
+      }
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      alert("Не удалось загрузить изображение для копирования");
+    };
   };
 
   const qrData = `ST00012|Name=${fields.Name}|PersonalAcc=${fields.PersonalAcc}|BankName=${fields.BankName}|BIC=${fields.BIC}|CorrespAcc=${fields.CorrespAcc}|PayeeINN=${fields.PayeeINN}|Purpose=${fields.Purpose}${fields.Sum ? `|Sum=${fields.Sum}` : ""}`;
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(qrData);
-      alert("QR-данные скопированы в буфер обмена");
-    } catch (err) {
-      alert("Ошибка копирования");
-    }
+  const LABELS = {
+    Name: "ФИО",
+    PersonalAcc: "Лицевой счет",
+    BankName: "Банк",
+    BIC: "БИК",
+    CorrespAcc: "Корреспондентский счет",
+    PayeeINN: "ИНН получателя",
+    Purpose: "Назначение платежа",
+    Sum: "Сумма (не обязательно)",
   };
 
   return (
@@ -119,7 +173,7 @@ export default function App() {
 
         {isValid && (
           <Box ref={qrRef} mt={4} textAlign="center">
-            <Paper elevation={3} sx={{ display: "inline-block", padding: 2 }}>
+            <Paper elevation={3} sx={{ display: "inline-block", padding: 2, backgroundColor: "#fff" }}>
               <QRCode value={qrData} size={256} bgColor="#fff" fgColor="#000" />
             </Paper>
             <Typography variant="body2" mt={2} sx={{ wordBreak: "break-all" }}>
@@ -136,6 +190,21 @@ export default function App() {
             </Stack>
           </Box>
         )}
+        <Snackbar
+          open={copySuccess}
+          autoHideDuration={3000}
+          onClose={() => setCopySuccess(false)}
+          anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        >
+          <Alert
+            severity="success"
+            variant="filled"
+            sx={{ width: "100%" }}
+            onClose={() => setCopySuccess(false)}
+          >
+            QR-код скопирован в буфер обмена
+          </Alert>
+        </Snackbar>
       </Container>
     </ThemeProvider>
   );
