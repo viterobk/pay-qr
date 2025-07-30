@@ -35,5 +35,6 @@ export default defineConfig({
         ]
       }
     })
-  ]
+  ],
+  base: '/pay-qr/',
 });
