@@ -1,6 +1,7 @@
 // src/App.jsx
 import { useEffect, useState, useRef } from "react";
 import QRCode from "react-qr-code";
+import "fast-text-encoding";
 import {
   Container,
   TextField,
@@ -147,6 +148,9 @@ export default function App() {
     Sum: "Сумма (не обязательно)",
   };
 
+  const encoder = new TextEncoder("windows-1251");
+  const encodedData = encoder.encode(qrData);
+
   return (
     <ThemeProvider theme={darkTheme}>
       <CssBaseline />
@@ -174,7 +178,12 @@ export default function App() {
         {isValid && (
           <Box ref={qrRef} mt={4} textAlign="center">
             <Paper elevation={3} sx={{ display: "inline-block", padding: 2, backgroundColor: "#fff" }}>
-              <QRCode value={qrData} size={256} bgColor="#fff" fgColor="#000" />
+              <QRCode
+                value={String.fromCharCode(...encodedData)}
+                size={256}
+                bgColor="#fff"
+                fgColor="#000"
+              />
             </Paper>
             <Typography variant="body2" mt={2} sx={{ wordBreak: "break-all" }}>
               {qrData}

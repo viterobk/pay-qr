@@ -12,6 +12,7 @@
   "dependencies": {
     "@emotion/styled": "^11.14.1",
     "@mui/material": "^7.2.0",
+    "fast-text-encoding": "^1.0.6",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-qr-code": "^2.0.18"
