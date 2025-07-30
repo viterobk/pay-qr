@@ -11,7 +11,7 @@ export default defineConfig({
       manifest: {
         name: 'QR Платежи',
         short_name: 'QR Pay',
-        start_url: '/',
+        start_url: '.',
         display: 'standalone',
         background_color: '#000000',
         theme_color: '#121212',
