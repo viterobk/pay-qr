@@ -17,6 +17,17 @@ import {
   Alert
 } from "@mui/material";
 
+const LABELS = {
+  Name: "ФИО",
+  PersonalAcc: "Лицевой счет",
+  BankName: "Банк",
+  BIC: "БИК",
+  CorrespAcc: "Корреспондентский счет",
+  PayeeINN: "ИНН получателя",
+  Purpose: "Назначение платежа",
+  Sum: "Сумма, руб. (не обязательно)",
+};
+
 const defaultFields = {
   Name: "",
   PersonalAcc: "",
@@ -37,7 +48,9 @@ const darkTheme = createTheme({
 export default function App() {
   const [fields, setFields] = useState(() => {
     const stored = localStorage.getItem("qrForm");
-    return stored ? JSON.parse(stored) : defaultFields;
+    const result = stored ? JSON.parse(stored) : defaultFields;
+    result.Sum = result.Sum ? String(Number(result.Sum) / 100) : "";
+    return result;
   });
 
   const [errors, setErrors] = useState({});
@@ -46,7 +59,10 @@ export default function App() {
   const qrRef = useRef(null);
 
   useEffect(() => {
-    localStorage.setItem("qrForm", JSON.stringify(fields));
+    localStorage.setItem("qrForm", JSON.stringify({
+      ...fields,
+      Sum: fields.Sum ? String(Number(fields.Sum) * 100) : "",
+    }));
     const newErrors = {};
     Object.entries(fields).forEach(([key, value]) => {
       if (key !== "Sum" && !value.trim()) {
@@ -135,18 +151,7 @@ export default function App() {
     };
   };
 
-  const qrData = `ST00012|Name=${fields.Name}|PersonalAcc=${fields.PersonalAcc}|BankName=${fields.BankName}|BIC=${fields.BIC}|CorrespAcc=${fields.CorrespAcc}|PayeeINN=${fields.PayeeINN}|Purpose=${fields.Purpose}${fields.Sum ? `|Sum=${fields.Sum}` : ""}`;
-
-  const LABELS = {
-    Name: "ФИО",
-    PersonalAcc: "Лицевой счет",
-    BankName: "Банк",
-    BIC: "БИК",
-    CorrespAcc: "Корреспондентский счет",
-    PayeeINN: "ИНН получателя",
-    Purpose: "Назначение платежа",
-    Sum: "Сумма (не обязательно)",
-  };
+  const qrData = `ST00012|Name=${fields.Name}|PersonalAcc=${fields.PersonalAcc}|BankName=${fields.BankName}|BIC=${fields.BIC}|CorrespAcc=${fields.CorrespAcc}|PayeeINN=${fields.PayeeINN}|Purpose=${fields.Purpose}${fields.Sum ? `|Sum=${Number(fields.Sum) * 100}` : ""}`;
 
   const encoder = new TextEncoder("windows-1251");
   const encodedData = encoder.encode(qrData);
